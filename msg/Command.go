@@ -16,6 +16,8 @@ var (
 		"/imagine": "Imagine",
 		"/up":      "Up",
 		"/help":    "Help",
+		"/tianqi":    "Tianqi",
+		"/story":    "Story",
 	}
 )
 
@@ -23,6 +25,8 @@ type Command interface {
 	Imagine()
 	Up()
 	Help()
+	Tianqi()
+	Story()
 }
 type Impl struct {
 	msg     *openwechat.Message
@@ -110,6 +114,65 @@ func (c Impl) Up() {
 	}
 }
 
+func (c Impl) Tianqi() {
+	name, err := utils.GetUserName(c.msg)
+	c.info = replay.Info{
+		NickName: name,
+	}
+	if err != nil {
+		c.msg.ReplyText(c.info.GenrateMessage(replay.TaskNewUserErrMsg))
+		return
+	}
+	commands := strings.SplitN(c.realMsg, " ", 2)
+	if len(commands) != 1 {
+		c.msg.ReplyText("❌命令格式错误，示例:/tianqi 城市名称")
+		return
+	}
+	city := strings.TrimSpace(commands[0])
+
+	ok, result := api.QueryTianqi(city)
+	if ok {
+		tqResult := result["city"].(string)+"天气预报\n" +
+			result["date"].(string)+ result["week"].(string) + "\n" +
+			result["weather"].(string)+" "+result["templow"].(string) +"-"+ result["temphigh"].(string)+"℃\n" +
+			result["winddirect"].(string)+ result["windpower"].(string)+ "℃,风速"+result["windspeed"].(string) + "\n" +
+			"更新时间："+result["updatetime"].(string)
+		c.msg.ReplyText(tqResult)
+		log.Printf("发送%s天气:%s", city,tqResult)
+	}
+}
+
+func (c Impl) Story() {
+	name, err := utils.GetUserName(c.msg)
+	c.info = replay.Info{
+		NickName: name,
+	}
+	if err != nil {
+		c.msg.ReplyText(c.info.GenrateMessage(replay.TaskNewUserErrMsg))
+		return
+	}
+	commands := strings.SplitN(c.realMsg, " ", 2)
+	if len(commands) != 1 {
+		c.msg.ReplyText("❌命令格式错误，示例:/story 故事标题，不输入则随机听故事")
+		return
+	}
+	title := strings.TrimSpace(commands[0])
+
+	ok, result := api.QueryStory(title)
+	if ok  {
+		if result!=nil{
+			tqResult := "《"+result["title"].(string)+"》\n" +
+				result["content"].(string)
+			c.msg.ReplyText(tqResult)
+			log.Printf("发送故事《%s》", result["title"].(string))
+		}else{
+			c.msg.ReplyText("没有找到该故事")
+			log.Printf("没有找到该故事《%s》", title)
+		}
+
+	}
+}
+
 /**
 欢迎使用梦幻画室为您提供的Midjourney服务
 ------------------------------
@@ -142,7 +205,7 @@ func (c Impl) Up() {
 */
 func (c Impl) Help() {
 	msg :=
-		"欢迎使用MJBOT机器人\n" +
+		"欢迎使用MJ机器人\n" +
 			"------------------------------\n" +
 			"🎨 生成图片命令 \n" +
 			"输入: /imagine prompt\n" +

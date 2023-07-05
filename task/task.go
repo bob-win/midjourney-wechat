@@ -102,8 +102,7 @@ func QueryTaskStatus(taskId string) {
 	if ok {
 		// 判断是否完成
 		switch data["status"] {
-		case "finish":
-		case "finished":
+		case "SUCCESS":
 			go func() {
 				url := data["image_url"].(string)
 				info.Url = url
@@ -145,10 +144,13 @@ func QueryTaskStatus(taskId string) {
 			// 删除任务
 			taskIds.Delete(taskId)
 			break
-		case "pending":
+		case "NOT_START":
 			// 任务未完成
 			break
-		case "wait":
+		case "SUBMITTED":
+			// 任务未完成
+			break
+		case "IN_PROGRESS":
 			// 任务未完成
 			break
 		case "invalid params":
@@ -167,6 +169,10 @@ func QueryTaskStatus(taskId string) {
 		case "error":
 			// 任务被封禁
 			// 任务参数错误
+			failTask(taskId, fromUserName, info.GenrateMessage(replay.TaskErrMsg))
+			break
+		case "FAILURE":
+			// 失败
 			failTask(taskId, fromUserName, info.GenrateMessage(replay.TaskErrMsg))
 			break
 		}

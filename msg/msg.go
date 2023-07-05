@@ -18,10 +18,9 @@ func OnMessage(msg *openwechat.Message) {
 	msgId := strconv.FormatInt(msg.NewMsgId, 10)
 	log.Printf("msgId:%s", msgId)
 	// 如果是文本消息, 并且内容为"ping", 则回复"pong"
-	//if msg.IsText() && msg.Content == "ping" {
-	//
-	//	msg.ReplyText("pong")
-	//}
+	if msg.IsText() && msg.Content == "ping" {
+		msg.ReplyText("pong")
+	}
 
 	//if msg.IsPicture() {
 	//	picture, err := msg.GetPicture()
@@ -86,14 +85,21 @@ func OnMessage(msg *openwechat.Message) {
 		return
 	}
 	realMsg := strings.TrimSpace(msg.Content)
+	log.Println("当前机器人：",msg.Owner().NickName)
 	log.Println("收到消息:", realMsg)
 	msg.AsRead()
 	log.Println("收到消息1:", realMsg)
 	log.Printf("commands:%v", Commands)
+
+	isToBotMsg := strings.HasPrefix(realMsg, "@"+msg.Owner().NickName)
+	log.Printf("是否@了机器人", isToBotMsg)
+	isCommand := false
+
 	for pre, command := range Commands {
 		hasPrefix := strings.HasPrefix(realMsg, pre)
 		log.Printf("判断命令:%s 结果:%v", pre, hasPrefix)
 		if hasPrefix {
+			isCommand = true
 			log.Printf("开始设置NX:%s", msgId)
 			if !api.CheckAPI(msgId) {
 				log.Printf("消息已被处理，跳过")
@@ -106,6 +112,14 @@ func OnMessage(msg *openwechat.Message) {
 			}
 			impl.call(pre, command)
 			return
+		}
+	}
+
+	if isToBotMsg && !isCommand {
+		//群组内发言的用户信息
+		senderUser, err := msg.SenderInGroup()
+		if err == nil {
+			msg.ReplyText("@"+senderUser.NickName+" 请按指令格式发送消息")
 		}
 	}
 
